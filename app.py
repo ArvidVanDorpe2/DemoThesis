@@ -6,7 +6,7 @@ app = Flask(__name__)
 
 db_config = {
     'user': 'root',
-    'password': 'Alfa9514753!',
+    'password': '*********',
     'host': 'localhost',
     'database': 'ehr_db'  # replace with your actual database name
 }
