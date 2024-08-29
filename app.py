@@ -6,7 +6,7 @@ app = Flask(__name__)
 
 db_config = {
     'user': 'root',
-    'password': '************',
+    'password': 'Alfa9514753!',
     'host': 'localhost',
     'database': 'ehr_db'  # replace with your actual database name
 }
@@ -271,12 +271,10 @@ CREATE TABLE PatientDocuments (
 def generate_sql_query(user_question):
     prompt = f"""
 ### Task
-Generate a SQL query only using the Database Schema provided to answer the following question. **You must use only the tables and columns listed in the schema. Do not invent or assume any additional tables, columns, or relationships.** to answer [QUESTION]{user_question}[/QUESTION] If the schema does not provide the necessary information to answer the question, state that it cannot be answered with the given schema.
-
+Generate a SQL query to answer [QUESTION]{user_question}[/QUESTION], if I or me is mentioned then the question is about patient_id 1
 
 ### Database Schema
-The query will run on a database with the following schema, **DO NOT INVENT NEW TABLES**
-Given the database schema, here is the SQL query that answers the following question: [QUESTION]{user_question}[/QUESTION]. Make sure to use only the tables and columns listed above and provide a valid SQL query. If the question cannot be answered with the given schema, respond with "The question cannot be answered with the provided schema.":
+The query will run on a database with the following schema:
 {schema}
 
 ### Answer
@@ -287,7 +285,28 @@ Given the database schema, here is the SQL query that [QUESTION]{user_question}[
     history = [{"role": "user", "content": prompt}]
 
     response = client.chat.completions.create(
-        model="MaziyarPanahi/sqlcoder-7b-2-GGUF",
+        model="MaziyarPanahi/sqlcoder-7b-2-GGUF/sqlcoder-7b-2.Q4_K_M.gguf",
+        messages=history,
+        temperature=0.3
+    )
+
+    return response.choices[0].message.content
+
+def interpret_results_with_model(user_question, data):
+    prompt = f"""
+### Task
+Given the following SQL query result, provide a concise answer in plain English that directly addresses the user's original question, dont include the patient_id or SQL.
+
+**User Question**: {user_question}
+
+**SQL Query Result**: {data}
+
+### Answer
+"""
+    history = [{"role": "user", "content": prompt}]
+
+    response = client.chat.completions.create(
+        model="TheBloke/Mistral-7B-Instruct-v0.1-GGUF/mistral-7b-instruct-v0.1.Q4_0.gguf",
         messages=history,
         temperature=0.1
     )
@@ -327,16 +346,22 @@ def index():
 
 @app.route('/ask', methods=['POST'])
 def ask():
-    user_question = request.form['question']
+    user_question = request.form['question'].replace('my', "patient with patient_id 1's").replace('I', "patient with patient_id 1")
+
+    # Generate SQL query using the first model
     sql_query = generate_sql_query(user_question)
 
-    # Execute the generated SQL query
     if sql_query.strip().lower().startswith("the question cannot be answered"):
         result = sql_query
+        interpreted_result = result
     else:
+        # Execute the generated SQL query
         result = execute_sql_query(sql_query)
 
-    return jsonify({'sql_query': sql_query, 'result': result})
+        # Interpret results with the second model using both the question and the result
+        interpreted_result = interpret_results_with_model(user_question, result)
+
+    return jsonify({'sql_query': sql_query, 'result': result, 'interpreted_result': interpreted_result})
 
 
 if __name__ == '__main__':

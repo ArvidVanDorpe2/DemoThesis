@@ -2,19 +2,179 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SQL Query Generator</title>
+    <title>SQL Query Generator Chat</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+        }
+
+        .chat-container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            width: 100%;
+            max-width: 800px;
+            margin: 0 auto;
+            border: 1px solid #ccc;
+            border-radius: 10px;
+            overflow: hidden;
+            background-color: white;
+        }
+
+        .chat-box {
+            flex: 1;
+            padding: 10px;
+            overflow-y: auto;
+            border-bottom: 1px solid #ccc;
+            position: relative;
+        }
+
+        .chat-bubble {
+            display: inline-block;
+            padding: 10px;
+            border-radius: 15px;
+            margin: 5px;
+            max-width: 60%;
+            font-size: 16px;
+        }
+
+        .user {
+            background-color: #007bff;
+            color: white;
+            text-align: right;
+            margin-left: auto;
+        }
+
+        .bot {
+            background-color: #e9ecef;
+            color: #333;
+            text-align: left;
+        }
+
+        .typing-indicator {
+            display: flex;
+            align-items: center;
+            padding: 10px;
+            border-radius: 15px;
+            margin: 5px;
+            background-color: #e9ecef;
+            color: #333;
+            text-align: left;
+        }
+
+        .typing-indicator::before {
+            content: '';
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background-color: #333;
+            animation: typing 1.5s infinite;
+            margin-right: 5px;
+        }
+
+        @keyframes typing {
+            0% {
+                opacity: 0;
+            }
+            50% {
+                opacity: 1;
+            }
+            100% {
+                opacity: 0;
+            }
+        }
+
+        form {
+            display: flex;
+        }
+
+        #question {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            border-radius: 0;
+            outline: none;
+        }
+
+        button {
+            padding: 10px;
+            border: none;
+            background-color: #045eda;
+            color: white;
+            cursor: pointer;
+        }
+    </style>
 </head>
 <body>
-    <div class="container">
-        <h1>SQL Query Generator</h1>
-        <div class="chat-box">
-            <div id="chat-output" class="chat-container"></div>
-            <input type="text" id="user-question" placeholder="Ask a question about the database...">
-            <button id="ask-button">Generate SQL Query</button>
+    <div class="chat-container">
+        <div class="chat-box" id="chat-box">
+            <!-- Chat messages will be dynamically added here -->
         </div>
+        <form id="chat-form" action="#" method="POST">
+            <input type="text" id="question" name="question" placeholder="Ask a question about the database...">
+            <button type="submit">Send</button>
+        </form>
     </div>
-    <script src="{{ url_for('static', filename='script.js') }}"></script>
+
+    <script>
+        // Handle form submission
+        document.getElementById('chat-form').addEventListener('submit', async function (e) {
+            e.preventDefault();
+            const questionInput = document.getElementById('question');
+            const userMessage = questionInput.value.trim();
+
+            if (userMessage === '') return;
+
+            // Add user message to chat
+            addChatMessage('user', userMessage);
+
+            // Create and show the typing indicator
+            const typingIndicator = document.createElement('div');
+            typingIndicator.className = 'typing-indicator';
+            typingIndicator.textContent = 'Typing...';
+            document.getElementById('chat-box').appendChild(typingIndicator);
+            document.getElementById('chat-box').scrollTop = document.getElementById('chat-box').scrollHeight;
+
+            // Simulate API call to bot
+            const response = await fetch('/ask', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: `question=${encodeURIComponent(userMessage)}`
+            });
+
+            const result = await response.json();
+
+            // Replace the typing indicator with the actual response
+            typingIndicator.textContent = '';
+            typingIndicator.classList.remove('typing-indicator');
+            addChatMessage('bot', `${result.interpreted_result}`);
+
+            // Clear the input field
+            questionInput.value = '';
+        });
+
+        function addChatMessage(sender, message) {
+            const chatBox = document.getElementById('chat-box');
+            const messageElement = document.createElement('div');
+            messageElement.className = `chat-bubble ${sender}`;
+            messageElement.textContent = message;
+
+            const wrapper = document.createElement('div');
+            wrapper.className = sender === 'user' ? 'chat-wrapper user-wrapper' : 'chat-wrapper bot-wrapper';
+            wrapper.appendChild(messageElement);
+
+            chatBox.appendChild(wrapper);
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+    </script>
 </body>
 </html>

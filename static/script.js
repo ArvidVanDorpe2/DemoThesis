@@ -27,11 +27,11 @@ document.getElementById('ask-button').addEventListener('click', function() {
             outputDiv.appendChild(userMsg);
 
 
-            // Bot message with SQL query results
-            const botMsgResult = document.createElement('div');
-            botMsgResult.textContent = JSON.stringify(data.result);
-            botMsgResult.className = 'chat-bubble bot-message';
-            outputDiv.appendChild(botMsgResult);
+            // Bot message with interpreted answer
+            const botMsgAnswer = document.createElement('div');
+            botMsgAnswer.textContent = data.interpreted_result;
+            botMsgAnswer.className = 'chat-bubble bot-message';
+            outputDiv.appendChild(botMsgAnswer);
 
             // Scroll to the bottom
             outputDiv.scrollTop = outputDiv.scrollHeight;
